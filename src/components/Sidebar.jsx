@@ -43,18 +43,18 @@ const Sidebar = () => {
   return (
     <aside className="w-64 bg-sidebar text-sidebar min-h-screen flex flex-col shadow-xl flex-shrink-0 border-r border-sidebar transition-all">
       {/* Brand area */}
-      <div className="px-5 py-6 border-b border-sidebar flex items-center gap-3.5">
-        <div className="w-12 h-12 flex-shrink-0 bg-slate-50 rounded-xl p-1 shadow-lg border border-slate-200/10">
+      <div className="px-5 py-6 border-b border-sidebar flex flex-col items-center gap-3">
+        <div className="w-16 h-16 flex-shrink-0 bg-slate-50 rounded-xl p-1.5 shadow-lg border border-slate-200/10">
           <img src="/Bbsr_police_commissionerate.png" alt="Police Logo" className="w-full h-full object-contain" />
         </div>
-        <div className="flex flex-col">
-          <h2 className="font-black text-[16px] leading-none text-white tracking-widest uppercase mb-1">
+        <div className="flex flex-col items-center text-center">
+          <h2 className="font-black text-[17px] leading-tight text-white tracking-widest uppercase">
             Police
           </h2>
-          <h3 className="font-semibold text-[11px] leading-none text-slate-300 uppercase tracking-[0.15em] mb-1.5">
+          <h3 className="font-semibold text-[12px] leading-tight text-slate-300 uppercase tracking-[0.15em] mt-0.5">
             Commissionerate
           </h3>
-          <p className="text-[10px] text-accent font-bold uppercase tracking-widest">
+          <p className="text-[10px] text-accent font-bold uppercase tracking-widest mt-1.5 bg-accent/10 px-3 py-0.5 rounded-full border border-accent/20">
             Inventory System
           </p>
         </div>
