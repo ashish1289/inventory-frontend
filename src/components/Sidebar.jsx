@@ -41,22 +41,29 @@ const Sidebar = () => {
   const links = isAdmin ? adminLinks : deptLinks;
 
   return (
-    <aside className="w-64 bg-primary text-primary-foreground min-h-screen flex flex-col shadow-xl flex-shrink-0 border-r border-primary/20 transition-all">
+    <aside className="w-64 bg-sidebar text-sidebar min-h-screen flex flex-col shadow-xl flex-shrink-0 border-r border-sidebar transition-all">
       {/* Brand area */}
-      <div className="p-6 border-b border-primary-foreground/10 flex items-center gap-3">
-        <div className="bg-accent p-2 rounded-lg text-primary">
-          <ShieldCheck size={28} />
+      <div className="px-5 py-6 border-b border-sidebar flex items-center gap-3.5">
+        <div className="w-12 h-12 flex-shrink-0 bg-slate-50 rounded-xl p-1 shadow-lg border border-slate-200/10">
+          <img src="/Bbsr_police_commissionerate.png" alt="Police Logo" className="w-full h-full object-contain" />
         </div>
-        <div>
-          <h2 className="font-bold text-lg leading-tight tracking-wide">Police Comm.</h2>
-          <p className="text-xs text-primary-foreground/70 uppercase font-semibold">Inventory System</p>
+        <div className="flex flex-col">
+          <h2 className="font-black text-[16px] leading-none text-white tracking-widest uppercase mb-1">
+            Police
+          </h2>
+          <h3 className="font-semibold text-[11px] leading-none text-slate-300 uppercase tracking-[0.15em] mb-1.5">
+            Commissionerate
+          </h3>
+          <p className="text-[10px] text-accent font-bold uppercase tracking-widest">
+            Inventory System
+          </p>
         </div>
       </div>
 
       {/* User Info (mini) */}
-      <div className="px-6 py-4 bg-primary-foreground/5 mb-4">
+      <div className="px-6 py-4 bg-sidebar-hover border-y border-sidebar mb-4">
         <p className="text-sm font-medium">{user.name}</p>
-        <p className="text-xs text-primary-foreground/60 capitalize mt-0.5">{user.role}</p>
+        <p className="text-xs text-sidebar-muted capitalize mt-0.5">{user.role}</p>
       </div>
 
       {/* Nav Links */}
@@ -73,10 +80,10 @@ const Sidebar = () => {
                 "flex flex-row items-center gap-3 px-4 py-3 rounded-md transition-all text-sm font-medium",
                 isActive 
                   ? "bg-secondary text-secondary-foreground shadow-sm" 
-                  : "text-primary-foreground hover:bg-primary-foreground/10"
+                  : "text-sidebar hover:bg-sidebar-hover"
               )}
             >
-              <Icon size={18} className={isActive ? "text-secondary-foreground" : "text-primary-foreground/70"} />
+              <Icon size={18} className={isActive ? "text-secondary-foreground" : "text-sidebar-muted"} />
               {link.name}
             </Link>
           );
@@ -84,10 +91,10 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer / Logout */}
-      <div className="p-4 border-t border-primary-foreground/10 mt-auto">
+      <div className="p-4 border-t border-sidebar mt-auto">
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-secondary/90 hover:text-white rounded-md transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-sidebar hover:bg-secondary/90 hover:text-white rounded-md transition-colors"
         >
           <LogOut size={18} />
           Logout

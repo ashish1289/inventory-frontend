@@ -44,8 +44,8 @@ const Login = () => {
 
       <div className="w-full max-w-md bg-surface p-8 rounded-2xl shadow-xl border border-border relative z-10 flex flex-col">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg">
-            <ShieldCheck size={40} className="text-primary-foreground" />
+          <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-lg p-2 border border-border">
+            <img src="/Bbsr_police_commissionerate.png" alt="Police Commissionerate Logo" className="w-full h-full object-contain hover:scale-105 transition-transform" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-text">Welcome Back</h1>
           <p className="text-sm text-text-muted mt-1 text-center">

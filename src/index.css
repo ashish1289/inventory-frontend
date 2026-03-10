@@ -15,22 +15,36 @@
     --text: #0f172a;
     --text-muted: #64748b;
     --border: #e2e8f0;
+
+    /* Sidebar Variables */
+    --sidebar-bg: #0f172a;
+    --sidebar-text: #ffffff;
+    --sidebar-text-muted: #94a3b8;
+    --sidebar-hover: rgba(255, 255, 255, 0.1);
+    --sidebar-border: rgba(255, 255, 255, 0.1);
   }
 
   html.dark {
-    /* Commissionerate Police Theme (Dark) */
-    --background: #020617; /* Very Dark Blue/Black */
-    --surface: #0f172a;
-    --surface-hover: #1e293b;
-    --primary: #3b82f6; /* Lighter Blue for visibility */
+    /* Commissionerate Police Theme (Dark) - Deep sleek Slate */
+    --background: #020617; /* Slate 950 */
+    --surface: #0f172a;    /* Slate 900 */
+    --surface-hover: #1e293b; /* Slate 800 */
+    --primary: #3b82f6; /* Legible Blue for action buttons */
     --primary-foreground: #ffffff;
-    --secondary: #ef4444; /* Lighter Red */
+    --secondary: #ef4444; /* Clean Red */
     --secondary-foreground: #ffffff;
-    --accent: #fbbf24; /* Lighter Gold */
+    --accent: #fbbf24; /* Crisp Gold */
     --accent-foreground: #020617;
     --text: #f8fafc;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
     --border: #1e293b;
+
+    /* Sidebar Variables for Dark Mode */
+    --sidebar-bg: #020617; /* Very deep navy/black */
+    --sidebar-text: #f8fafc;
+    --sidebar-text-muted: #64748b;
+    --sidebar-hover: #1e293b;
+    --sidebar-border: #1e293b;
   }
 }
 
@@ -46,37 +60,21 @@
 
 /* Custom utility classes */
 @layer utilities {
-  .bg-surface {
-    background-color: var(--surface);
-  }
-  .bg-surface-hover {
-    background-color: var(--surface-hover);
-  }
-  .text-primary {
-    color: var(--text);
-  }
-  .text-muted {
-    color: var(--text-muted);
-  }
-  .bg-primary {
-    background-color: var(--primary);
-  }
-  .text-primary-foreground {
-    color: var(--primary-foreground);
-  }
-  .bg-secondary {
-    background-color: var(--secondary);
-  }
-  .text-secondary-foreground {
-    color: var(--secondary-foreground);
-  }
-  .bg-accent {
-    background-color: var(--accent);
-  }
-  .text-accent-foreground {
-    color: var(--accent-foreground);
-  }
-  .border-subtle {
-    border-color: var(--border);
-  }
+  .bg-surface { background-color: var(--surface); }
+  .bg-surface-hover { background-color: var(--surface-hover); }
+  .text-primary { color: var(--text); }
+  .text-muted { color: var(--text-muted); }
+  .bg-primary { background-color: var(--primary); }
+  .text-primary-foreground { color: var(--primary-foreground); }
+  .bg-secondary { background-color: var(--secondary); }
+  .text-secondary-foreground { color: var(--secondary-foreground); }
+  .bg-accent { background-color: var(--accent); }
+  .text-accent-foreground { color: var(--accent-foreground); }
+  .border-subtle { border-color: var(--border); }
+  
+  /* Sidebar Utilities */
+  .bg-sidebar { background-color: var(--sidebar-bg); }
+  .text-sidebar { color: var(--sidebar-text); }
+  .text-sidebar-muted { color: var(--sidebar-text-muted); }
+  .border-sidebar { border-color: var(--sidebar-border); }
 }

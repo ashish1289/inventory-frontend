@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const parsed = JSON.parse(storedUser);
         // Ensure the parsed user has a valid role, otherwise it's garbage data
-        if (!parsed || !parsed.role) {
+        if (!parsed || !parsed.role || !['admin', 'department'].includes(parsed.role)) {
           throw new Error('Invalid user data structure');
         }
         setUser(parsed);
