@@ -87,6 +87,15 @@ const AdminCategories = () => {
     )}
   ];
 
+  const categoryExportConfig = {
+    headers: ['Category Name', 'Description', 'Created At'],
+    dataFormat: (row) => [
+      row.name,
+      row.description || '',
+      new Date(row.createdAt).toLocaleDateString()
+    ]
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-end">
@@ -99,7 +108,13 @@ const AdminCategories = () => {
         </button>
       </div>
 
-      <Table columns={columns} data={categories} loading={loading} />
+      <Table 
+        columns={columns} 
+        data={categories} 
+        loading={loading}
+        exportName="Categories_Report"
+        exportConfig={categoryExportConfig}
+      />
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedCategory ? 'Edit Category' : 'Create Category'}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

@@ -1,7 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Download } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ArrowUpDown, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-const Table = ({ columns, data, searchable = true, searchPlaceholder = "Search...", loading = false }) => {
+const Table = ({ columns, data, searchable = true, searchPlaceholder = "Search...", loading = false, exportName = "Data_Export", exportConfig = null }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,52 +49,76 @@ const Table = ({ columns, data, searchable = true, searchPlaceholder = "Search..
     setSortConfig({ key, direction });
   };
 
-  const handleExportCSV = () => {
-    if (!sortedData || sortedData.length === 0) return;
+  // Helper to extract clean data for exports
+  const getExportData = () => {
+    if (!sortedData || sortedData.length === 0) return [];
 
-    // 1. Get Headers
-    const headers = columns.map(c => c.header).join(',');
-
-    // 2. Get Rows
-    const csvRows = sortedData.map(row => {
+    const headers = exportConfig ? exportConfig.headers : columns.map(c => c.header).filter(Boolean);
+    
+    const rows = sortedData.map(row => {
+      if (exportConfig && exportConfig.dataFormat) {
+        return exportConfig.dataFormat(row);
+      }
+      
       return columns.map(col => {
+        if (!col.header) return null; // Skip action columns
         let cellValue = '';
         if (col.accessor) {
           cellValue = row[col.accessor];
         } else if (col.render) {
-          // If it's a render function without accessor, we might not get perfect text representation
-          // We'll try to execute it. If it returns React nodes, this might be tricky,
-          // so we heavily rely on accessors for cleanly exported data, but we can try extraction:
           try {
             const rendered = col.render(row);
             if (typeof rendered === 'string' || typeof rendered === 'number') {
               cellValue = rendered;
             } else if (rendered?.props?.children) {
-              // Extremely basic React node text extraction fallback
-              cellValue = Array.isArray(rendered.props.children) 
-                ? rendered.props.children.join(' ') 
-                : rendered.props.children;
+              cellValue = Array.isArray(rendered.props.children) ? rendered.props.children.join(' ') : rendered.props.children;
+            } else {
+              cellValue = 'Complex Data';
             }
           } catch (e) {
             cellValue = '';
           }
         }
-        
-        // Sanitize for CSV
-        let textVal = String(cellValue || '').replace(/"/g, '""');
-        return `"${textVal}"`;
-      }).join(',');
+        return cellValue !== null && cellValue !== undefined ? String(cellValue).replace(/<[^>]*>?/gm, '') : '';
+      }).filter(val => val !== null);
     });
 
-    const csvString = [headers, ...csvRows].join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    return { headers, rows };
+  };
+
+  const handleExportExcel = () => {
+    const { headers, rows } = getExportData();
+    if (!rows.length) return;
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    
+    XLSX.writeFile(workbook, `${exportName}_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`);
+  };
+
+  const handleExportPDF = () => {
+    const { headers, rows } = getExportData();
+    if (!rows.length) return;
+
+    const doc = new jsPDF();
+    
+    // Add a title to the PDF
+    doc.setFontSize(14);
+    doc.text(exportName.replace(/_/g, ' '), 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+    doc.autoTable({
+      head: [headers],
+      body: rows,
+      startY: 35,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [30, 58, 138] }, // Match primary color loosely
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    doc.save(`${exportName}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
   };
 
   return (
@@ -113,14 +140,14 @@ const Table = ({ columns, data, searchable = true, searchPlaceholder = "Search..
             />
           </div>
           <button 
-            onClick={handleExportCSV}
-            disabled={sortedData.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-text border border-border rounded-md text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Download as Excel/CSV"
-          >
-            <Download size={16} className="text-green-600 dark:text-green-500" /> 
-            Export CSV
-          </button>
+              onClick={handleExportExcel}
+              disabled={sortedData.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-text border border-border rounded-md text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download as Excel File"
+            >
+              <FileSpreadsheet size={16} className="text-green-600 dark:text-green-500" /> 
+              Excel
+            </button>
         </div>
       )}
 

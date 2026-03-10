@@ -10,9 +10,14 @@ const ReceivedItems = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [resolveModalOpen, setResolveModalOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState(null);
+  
+  // Resolve Form States
+  const [acceptedQty, setAcceptedQty] = useState(0);
+  const [rejectedQty, setRejectedQty] = useState(0);
   const [rejectReason, setRejectReason] = useState('');
+  
   const [actionLoading, setActionLoading] = useState(false);
 
   // Filter States
@@ -36,39 +41,63 @@ const ReceivedItems = () => {
 
   useEffect(() => { fetchTransactions(); }, []);
 
-  const handleAccept = async (id) => {
-    try {
-      setActionLoading(true);
-      await api.put(`/transactions/accept/${id}`);
-      toast.success('Inventory accepted and recorded');
-      fetchTransactions();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to accept');
-    } finally {
-      setActionLoading(false);
+  const openResolveModal = (tx) => {
+    setSelectedTx(tx);
+    setAcceptedQty(tx.quantity); // Default to full accept
+    setRejectedQty(0);
+    setRejectReason('');
+    setResolveModalOpen(true);
+  };
+
+  const handleQtyChange = (field, value) => {
+    if (!selectedTx) return;
+    
+    // Ensure value is a valid number, default to 0
+    let num = parseInt(value, 10);
+    if (isNaN(num) || num < 0) num = 0;
+    
+    // Prevent going over total
+    if (num > selectedTx.quantity) num = selectedTx.quantity;
+
+    if (field === 'accept') {
+      setAcceptedQty(num);
+      setRejectedQty(selectedTx.quantity - num); // Auto-calculate remainder
+    } else {
+      setRejectedQty(num);
+      setAcceptedQty(selectedTx.quantity - num); // Auto-calculate remainder
     }
   };
 
-  const openRejectModal = (tx) => {
-    setSelectedTx(tx);
-    setRejectReason('');
-    setRejectModalOpen(true);
-  };
-
-  const handleReject = async (e) => {
+  const handleResolve = async (e) => {
     e.preventDefault();
-    if (!rejectReason.trim()) {
-      toast.error('Reason is required to reject');
+    
+    if (acceptedQty + rejectedQty !== selectedTx?.quantity) {
+      toast.error('Quantities must sum up strictly to the dispatch total');
       return;
     }
+
+    if (rejectedQty > 0 && !rejectReason.trim()) {
+      toast.error('Reason is strictly required for rejected items');
+      return;
+    }
+
     try {
       setActionLoading(true);
-      await api.put(`/transactions/reject/${selectedTx._id}`, { reason: rejectReason });
-      toast.success('Inventory rejected. Central stock un-allocated.');
-      setRejectModalOpen(false);
+      await api.put(`/transactions/resolve/${selectedTx._id}`, { 
+        acceptedQty, 
+        rejectedQty, 
+        reason: rejectedQty > 0 ? rejectReason : '' 
+      });
+      
+      const msg = rejectedQty > 0 
+        ? `Resolved: ${acceptedQty} added to stock, ${rejectedQty} returned.` 
+        : 'Fully accepted into stock.';
+      
+      toast.success(msg);
+      setResolveModalOpen(false);
       fetchTransactions();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to reject');
+      toast.error(error.response?.data?.message || 'Failed to resolve transaction');
     } finally {
       setActionLoading(false);
     }
@@ -127,36 +156,65 @@ const ReceivedItems = () => {
     { header: 'Date dispatched', render: (row) => new Date(row.createdAt).toLocaleDateString() },
     { header: 'Product', render: (row) => <span className="font-semibold">{row.productId?.name || row.productName}</span> },
     { header: 'Quantity', accessor: 'quantity' },
-    { header: 'Status', render: (row) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wider
-        ${row.status === 'pending' ? 'bg-accent/20 text-accent' : 
-          row.status === 'accepted' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-secondary/20 text-secondary'}`}
-      >
-        {row.status}
-      </span>
-    )},
-    { header: 'Actions', render: (row) => {
-      if (row.status !== 'pending') return <span className="text-text-muted text-xs italic">No actions</span>;
+    { header: 'Status', render: (row) => {
+      let badgeClass = 'bg-secondary/20 text-secondary';
+      let title = row.status;
+
+      if (row.status === 'pending') {
+        badgeClass = 'bg-accent/20 text-accent';
+      } else if (row.status === 'accepted') {
+        badgeClass = 'bg-green-500/20 text-green-600 dark:text-green-400';
+      } else if (row.status === 'partially_accepted') {
+        badgeClass = 'bg-primary/20 text-primary';
+        title = 'Partial';
+      }
+
       return (
-        <div className="flex gap-2">
-          <button 
-            disabled={actionLoading}
-            onClick={() => handleAccept(row._id)} 
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded shadow-sm text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <Check size={16} /> Accept
-          </button>
-          <button 
-            disabled={actionLoading}
-            onClick={() => openRejectModal(row)} 
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-secondary text-secondary hover:bg-secondary/10 rounded shadow-sm text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <X size={16} /> Reject
-          </button>
-        </div>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wider ${badgeClass}`}>
+          {title}
+        </span>
+      );
+    }},
+    { header: 'Actions', render: (row) => {
+      if (row.status !== 'pending') {
+        return (
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span className="text-green-600 dark:text-green-400" title="Accepted Quantity">{row.acceptedQuantity || 0} Acc</span>
+            <span className="text-border">|</span>
+            <span className="text-secondary" title="Rejected Quantity">{row.rejectedQuantity || 0} Rej</span>
+          </div>
+        );
+      }
+      // Only action is "Resolve Transfer"
+      return (
+        <button 
+          disabled={actionLoading}
+          onClick={() => openResolveModal(row)} 
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded shadow-sm text-sm font-medium transition-colors disabled:opacity-50"
+        >
+          <Check size={16} /> Resolve Transfer
+        </button>
       );
     }}
   ];
+
+  const receivedExportConfig = {
+    headers: ['Date Dispatched', 'Product', 'Dispatched Qty', 'Status', 'Accepted Qty', 'Rejected Qty', 'Rejection Reason'],
+    dataFormat: (row) => {
+      let statusText = row.status;
+      if (row.status === 'partially_accepted') statusText = 'Partially Accepted';
+      
+      return [
+        new Date(row.createdAt).toLocaleDateString(),
+        row.productId?.name || row.productName || 'Unknown',
+        row.quantity,
+        statusText.charAt(0).toUpperCase() + statusText.slice(1),
+        row.acceptedQuantity || (row.status === 'accepted' ? row.quantity : 0),
+        row.rejectedQuantity || (row.status === 'rejected' ? row.quantity : 0),
+        row.reason || ''
+      ];
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -234,31 +292,83 @@ const ReceivedItems = () => {
         </div>
       </div>
 
-      <Table columns={columns} data={filteredData} loading={loading} searchPlaceholder="Quick text search..." />
+      <Table 
+        columns={columns} 
+        data={filteredData} 
+        loading={loading} 
+        searchPlaceholder="Quick text search..." 
+        exportName="Received_Items_Inbox"
+        exportConfig={receivedExportConfig}
+      />
 
-      <Modal isOpen={rejectModalOpen} onClose={() => setRejectModalOpen(false)} title="Reject Inventory Transfer">
-        <form onSubmit={handleReject} className="flex flex-col gap-4">
-          <div className="bg-secondary/10 border border-secondary/20 p-4 rounded-lg flex gap-3 text-secondary mb-2">
-            <AlertTriangle className="shrink-0 mt-0.5" size={18} />
-            <p className="text-sm leading-snug">
-              You are about to reject <strong>{selectedTx?.quantity}x {selectedTx?.productId?.name || selectedTx?.productName}</strong>. 
-              This will return the items cleanly to Central Inventory. Make sure this is intended.
-            </p>
+      <Modal isOpen={resolveModalOpen} onClose={() => setResolveModalOpen(false)} title="Resolve Inventory Transfer">
+        <form onSubmit={handleResolve} className="flex flex-col gap-5">
+          {/* Header Info Banner */}
+          <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg flex flex-col gap-2">
+            <h4 className="font-semibold text-text">Transfer Summary</h4>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-text-muted">Product:</span>
+              <span className="font-medium text-text">{selectedTx?.productId?.name || selectedTx?.productName}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-text-muted">Total Dispatched:</span>
+              <span className="font-bold text-primary text-base">{selectedTx?.quantity} Units</span>
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-text">Rejection Reason <span className="text-secondary">*</span></label>
+
+          <p className="text-sm text-text-muted px-1">
+            Specify how many items you are accepting into your stock versus how many you are rejecting (returning to central).
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-green-600 dark:text-green-500">Accepted Quantity</label>
+              <input 
+                type="number"
+                min="0"
+                max={selectedTx?.quantity || 0}
+                className="w-full px-3 py-2 bg-surface border border-border rounded-md focus:ring-2 focus:ring-green-500 font-bold text-lg"
+                value={acceptedQty}
+                onChange={(e) => handleQtyChange('accept', e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-secondary">Rejected Quantity</label>
+              <input 
+                type="number"
+                min="0"
+                max={selectedTx?.quantity || 0}
+                className="w-full px-3 py-2 bg-surface border border-border rounded-md focus:ring-2 focus:ring-secondary font-bold text-lg"
+                value={rejectedQty}
+                onChange={(e) => handleQtyChange('reject', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className={`flex flex-col gap-1.5 transition-all duration-300 ${rejectedQty > 0 ? 'opacity-100 h-auto' : 'opacity-50 pointer-events-none'}`}>
+            <label className="text-sm font-medium text-text">
+              Rejection Reason {rejectedQty > 0 && <span className="text-secondary">*</span>}
+            </label>
             <textarea 
-              rows="3" 
+              rows="2" 
               className="w-full px-3 py-2 bg-surface border border-border rounded-md focus:ring-2 focus:ring-primary/50 text-sm"
-              placeholder="E.g. Damaged during transit, Incorrect quantity dispatched..."
+              placeholder={rejectedQty > 0 ? "Required: Why are " + rejectedQty + " items being returned?" : "Reason not required for full acceptance"}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              required
+              required={rejectedQty > 0}
+              disabled={rejectedQty === 0}
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-border mt-2">
-            <button type="button" onClick={() => setRejectModalOpen(false)} className="px-4 py-2 border rounded hover:bg-surface-hover text-sm font-medium">Cancel</button>
-            <button type="submit" disabled={actionLoading || !rejectReason.trim()} className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 text-sm font-medium disabled:opacity-50">Submit Rejection</button>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-border mt-1">
+            <button type="button" onClick={() => setResolveModalOpen(false)} className="px-5 py-2 border rounded hover:bg-surface-hover text-sm font-medium">Cancel</button>
+            <button 
+              type="submit" 
+              disabled={actionLoading || (acceptedQty + rejectedQty !== selectedTx?.quantity) || (rejectedQty > 0 && !rejectReason.trim())} 
+              className="px-5 py-2 bg-primary text-white rounded hover:bg-primary-hover text-sm font-semibold disabled:opacity-50"
+            >
+              Submit Resolution
+            </button>
           </div>
         </form>
       </Modal>

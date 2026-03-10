@@ -88,6 +88,16 @@ const MyInventory = () => {
     { header: 'Last Updated', render: (row) => new Date(row.updatedAt).toLocaleDateString() },
   ];
 
+  const inventoryExportConfig = {
+    headers: ['Product Name', 'Category', 'Quantity', 'Last Updated'],
+    dataFormat: (row) => [
+      row.productId?.name || 'Unknown',
+      row.productId?.categoryId?.name || 'Uncategorized',
+      row.quantity,
+      new Date(row.updatedAt).toLocaleDateString()
+    ]
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
@@ -167,6 +177,8 @@ const MyInventory = () => {
         data={filteredData} 
         loading={loading} 
         searchPlaceholder="Quick text search..."
+        exportName="Station_Inventory"
+        exportConfig={inventoryExportConfig}
       />
     </div>
   );

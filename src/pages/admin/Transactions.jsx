@@ -1,23 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/axios';
 import Table from '../../components/Table';
+import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
-import { AlertCircle, CheckCircle2, Clock, XCircle, Filter, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, XCircle, Filter, X, MessageSquare, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const StatusBadge = ({ status, reason }) => {
+const StatusBadge = ({ row }) => {
+  const { status, acceptedQuantity, rejectedQuantity } = row;
+  
   switch (status) {
     case 'pending':
-      return <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/20 text-accent"><Clock size={14} /> Pending</span>;
+      return <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/20 text-accent w-max"><Clock size={14} /> Pending</span>;
     case 'accepted':
-      return <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-600 dark:text-green-400"><CheckCircle2 size={14} /> Accepted</span>;
-    case 'rejected':
+      return <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-600 dark:text-green-400 w-max"><CheckCircle2 size={14} /> Accepted</span>;
+    case 'partially_accepted':
       return (
-        <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/20 text-secondary w-max"><XCircle size={14} /> Rejected</span>
-          {reason && <span className="text-xs text-secondary/80 flex items-center gap-1 mt-1"><AlertCircle size={12} /> {reason}</span>}
-        </div>
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary w-max">
+          <CheckCircle2 size={14} /> {acceptedQuantity} Acc / {rejectedQuantity} Rej
+        </span>
       );
+    case 'rejected':
+      return <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/20 text-secondary w-max"><XCircle size={14} /> Rejected</span>;
     default:
       return <span>{status}</span>;
   }
@@ -26,6 +30,10 @@ const StatusBadge = ({ status, reason }) => {
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal States
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
+  const [selectedReason, setSelectedReason] = useState(null);
 
   // Filter States
   const [filterProduct, setFilterProduct] = useState('');
@@ -107,8 +115,43 @@ const Transactions = () => {
     { header: 'Product', render: (row) => <span className="font-semibold">{row.productId?.name || row.productName}</span> },
     { header: 'Quantity', accessor: 'quantity', sortable: true },
     { header: 'To Station/Dept', render: (row) => row.toDepartment?.departmentName || row.toDepartment?.name || row.toDepartmentName },
-    { header: 'Status', render: (row) => <StatusBadge status={row.status} reason={row.reason} /> }
+    { header: 'Status', render: (row) => <StatusBadge row={row} /> },
+    { header: 'Remarks', render: (row) => {
+      if (!row.reason) return <span className="text-text-muted italic text-xs">-</span>;
+      return (
+        <button 
+          onClick={() => {
+            setSelectedReason({ text: row.reason, txId: row._id });
+            setReasonModalOpen(true);
+          }}
+          className="flex items-center gap-1.5 px-3 py-1 bg-surface border border-border hover:bg-surface-hover text-secondary rounded shadow-sm text-xs font-medium transition-colors"
+        >
+          <Eye size={14} /> View Reason
+        </button>
+      );
+    }}
   ];
+
+  const transactionExportConfig = {
+    headers: ['Date', 'Time', 'Product', 'Quantity', 'To Station/Dept', 'Status', 'Accepted', 'Rejected', 'Remarks'],
+    dataFormat: (row) => {
+      const dateObj = new Date(row.createdAt);
+      let statusText = row.status;
+      if (row.status === 'partially_accepted') statusText = 'Partially Accepted';
+      
+      return [
+        dateObj.toLocaleDateString(),
+        dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        row.productId?.name || row.productName || 'Unknown',
+        row.quantity,
+        row.toDepartment?.departmentName || row.toDepartment?.name || row.toDepartmentName || 'Unknown',
+        statusText.charAt(0).toUpperCase() + statusText.slice(1),
+        row.acceptedQuantity || (row.status === 'accepted' ? row.quantity : 0),
+        row.rejectedQuantity || (row.status === 'rejected' ? row.quantity : 0),
+        row.reason || ''
+      ];
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -117,7 +160,7 @@ const Transactions = () => {
         <p className="text-text-muted text-sm mt-1">Complete history of all inventory dispatches and their current acknowledgement status.</p>
       </div>
 
-      {/* Advanced Filter Bar */}
+      {/* Advanced Filter Bar ... existing code ... */}
       <div className="bg-surface rounded-xl border border-border shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-text flex items-center gap-2">
@@ -170,8 +213,9 @@ const Transactions = () => {
             >
               <option value="">All Statuses</option>
               <option value="pending">Pending</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
+              <option value="accepted">Accepted (Full)</option>
+              <option value="partially_accepted">Partially Accepted</option>
+              <option value="rejected">Rejected (Full)</option>
             </select>
           </div>
 
@@ -204,7 +248,23 @@ const Transactions = () => {
         data={filteredData} 
         loading={loading} 
         searchPlaceholder="Quick text search across filtered results..."
+        exportName="Transactions_Ledger"
+        exportConfig={transactionExportConfig}
       />
+
+      <Modal isOpen={reasonModalOpen} onClose={() => setReasonModalOpen(false)} title="Rejection Remarks">
+        <div className="flex flex-col gap-4">
+          <div className="bg-secondary/10 border border-secondary/20 p-4 rounded-lg flex items-start gap-3 text-secondary max-h-[50vh] overflow-y-auto w-full">
+            <MessageSquare className="shrink-0 mt-0.5" size={18} />
+            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words flex-1 min-w-0">
+              {selectedReason?.text || 'No remarks provided.'}
+            </p>
+          </div>
+          <div className="flex justify-end pt-2">
+            <button onClick={() => setReasonModalOpen(false)} className="px-4 py-2 bg-surface border border-border rounded hover:bg-surface-hover text-sm font-medium">Close</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

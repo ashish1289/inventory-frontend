@@ -129,6 +129,18 @@ const AdminUsers = () => {
     )}
   ];
 
+  const userExportConfig = {
+    headers: ['Name', 'Email', 'Role', 'Department Name', 'Station Code', 'Status'],
+    dataFormat: (row) => [
+      row.name,
+      row.email,
+      row.role.charAt(0).toUpperCase() + row.role.slice(1),
+      row.departmentName || '',
+      row.stationCode || '',
+      row.isActive ? 'Active' : 'Inactive'
+    ]
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-end">
@@ -149,6 +161,8 @@ const AdminUsers = () => {
         data={users} 
         loading={loading}
         searchPlaceholder="Search by name, email, or dept..." 
+        exportName="Users_Directory"
+        exportConfig={userExportConfig}
       />
 
       {/* Create/Edit Modal */}
