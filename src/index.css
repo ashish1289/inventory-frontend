@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Commissionerate Police Theme (Light) */
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-hover: #f1f5f9;
+    --primary: #0f172a; /* Deep Navy Blue */
+    --primary-foreground: #ffffff;
+    --secondary: #dc2626; /* Alert Red */
+    --secondary-foreground: #ffffff;
+    --accent: #d97706; /* Gold/Amber */
+    --accent-foreground: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+  }
+
+  html.dark {
+    /* Commissionerate Police Theme (Dark) */
+    --background: #020617; /* Very Dark Blue/Black */
+    --surface: #0f172a;
+    --surface-hover: #1e293b;
+    --primary: #3b82f6; /* Lighter Blue for visibility */
+    --primary-foreground: #ffffff;
+    --secondary: #ef4444; /* Lighter Red */
+    --secondary-foreground: #ffffff;
+    --accent: #fbbf24; /* Lighter Gold */
+    --accent-foreground: #020617;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #1e293b;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--text);
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .bg-surface {
+    background-color: var(--surface);
+  }
+  .bg-surface-hover {
+    background-color: var(--surface-hover);
+  }
+  .text-primary {
+    color: var(--text);
+  }
+  .text-muted {
+    color: var(--text-muted);
+  }
+  .bg-primary {
+    background-color: var(--primary);
+  }
+  .text-primary-foreground {
+    color: var(--primary-foreground);
+  }
+  .bg-secondary {
+    background-color: var(--secondary);
+  }
+  .text-secondary-foreground {
+    color: var(--secondary-foreground);
+  }
+  .bg-accent {
+    background-color: var(--accent);
+  }
+  .text-accent-foreground {
+    color: var(--accent-foreground);
+  }
+  .border-subtle {
+    border-color: var(--border);
+  }
+}
