@@ -4,7 +4,7 @@ import Table from '../../components/Table';
 import Modal from '../../components/Modal';
 import FormInput from '../../components/FormInput';
 import toast from 'react-hot-toast';
-import { Check, X, Clock, AlertTriangle } from 'lucide-react';
+import { Check, X, Clock, AlertTriangle, Filter } from 'lucide-react';
 
 const ReceivedItems = () => {
   const [transactions, setTransactions] = useState([]);
@@ -14,6 +14,12 @@ const ReceivedItems = () => {
   const [selectedTx, setSelectedTx] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Filter States
+  const [filterProduct, setFilterProduct] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
 
   const fetchTransactions = async () => {
     try {
@@ -68,12 +74,54 @@ const ReceivedItems = () => {
     }
   };
 
-  // Only show pending at the top, then history
-  const sortedData = [...transactions].sort((a, b) => {
-    if (a.status === 'pending' && b.status !== 'pending') return -1;
-    if (a.status !== 'pending' && b.status === 'pending') return 1;
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
+  // Extract unique values for dropdowns based on actual loaded data
+  const uniqueProducts = React.useMemo(() => {
+    const names = transactions.map(t => t.productId?.name || t.productName).filter(Boolean);
+    return [...new Set(names)].sort();
+  }, [transactions]);
+
+  // Apply filters
+  const filteredData = React.useMemo(() => {
+    return transactions.filter(tx => {
+      // 1. Product Filter
+      const pName = tx.productId?.name || tx.productName;
+      if (filterProduct && pName !== filterProduct) return false;
+
+      // 2. Status Filter
+      if (filterStatus && tx.status !== filterStatus) return false;
+
+      // 3. Date Range Filter
+      const txDate = new Date(tx.createdAt);
+      txDate.setHours(0,0,0,0);
+      
+      if (filterDateFrom) {
+        const fromDate = new Date(filterDateFrom);
+        fromDate.setHours(0,0,0,0);
+        if (txDate < fromDate) return false;
+      }
+      
+      if (filterDateTo) {
+        const toDate = new Date(filterDateTo);
+        toDate.setHours(23,59,59,999);
+        if (txDate > toDate) return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }, [transactions, filterProduct, filterStatus, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setFilterProduct('');
+    setFilterStatus('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+  };
+
+  const activeFilterCount = [filterProduct, filterStatus, filterDateFrom, filterDateTo].filter(Boolean).length;
 
   const columns = [
     { header: 'Date dispatched', render: (row) => new Date(row.createdAt).toLocaleDateString() },
@@ -117,7 +165,76 @@ const ReceivedItems = () => {
         <p className="text-text-muted text-sm mt-1">Review incoming inventory dispatches from Central. You must accept or reject pending items.</p>
       </div>
 
-      <Table columns={columns} data={sortedData} loading={loading} searchPlaceholder="Filter dispatches..." />
+      {/* Advanced Filter Bar */}
+      <div className="bg-surface rounded-xl border border-border shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-text flex items-center gap-2">
+            <Filter size={18} className="text-primary" /> Inbox Filters
+          </h3>
+          {activeFilterCount > 0 && (
+            <button 
+              onClick={clearFilters}
+              className="text-xs font-semibold text-secondary hover:text-secondary/70 flex items-center gap-1 bg-secondary/10 px-2 py-1 rounded"
+            >
+              <X size={14} /> Clear {activeFilterCount} Filters
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Product Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-muted">Product</label>
+            <select 
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+              value={filterProduct}
+              onChange={(e) => setFilterProduct(e.target.value)}
+            >
+              <option value="">All Products</option>
+              {uniqueProducts.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-muted">Status</label>
+            <select 
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          {/* Date From */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-muted">Dispatched From</label>
+            <input 
+              type="date" 
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+            />
+          </div>
+
+          {/* Date To */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-muted">Dispatched To</label>
+            <input 
+              type="date" 
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Table columns={columns} data={filteredData} loading={loading} searchPlaceholder="Quick text search..." />
 
       <Modal isOpen={rejectModalOpen} onClose={() => setRejectModalOpen(false)} title="Reject Inventory Transfer">
         <form onSubmit={handleReject} className="flex flex-col gap-4">
