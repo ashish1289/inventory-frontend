@@ -60,11 +60,6 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* User Info (mini) */}
-      <div className="px-6 py-4 bg-sidebar-hover border-y border-sidebar mb-4">
-        <p className="text-sm font-medium">{user.name}</p>
-        <p className="text-xs text-sidebar-muted capitalize mt-0.5">{user.role}</p>
-      </div>
 
       {/* Nav Links */}
       <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">

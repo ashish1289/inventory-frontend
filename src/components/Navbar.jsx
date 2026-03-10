@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Moon, Sun, Menu } from 'lucide-react';
 
 const Navbar = ({ onMenuClick }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Initialize theme from localStorage or system preference
   const [isDark, setIsDark] = useState(() => {
@@ -51,16 +53,20 @@ const Navbar = ({ onMenuClick }) => {
           {isDark ? <Sun size={18} className="text-accent" /> : <Moon size={18} className="text-primary" />}
         </button>
 
-        {/* Profile indicator */}
-        <div className="flex items-center gap-3 border-l border-border pl-4">
+        {/* Profile indicator - click to open profile page */}
+        <button 
+          onClick={() => navigate('/profile')}
+          className="flex items-center gap-3 border-l border-border pl-4 hover:bg-surface-hover rounded-md py-1 px-2 transition-colors"
+          title="My Profile"
+        >
           <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/20">
             {user?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
-          <div className="hidden sm:block">
+          <div className="hidden sm:block text-left">
             <p className="text-sm font-medium text-text">{user?.name}</p>
             <p className="text-xs text-text-muted">{user?.email}</p>
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

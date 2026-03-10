@@ -23,6 +23,9 @@ import DeptDashboard from './pages/department/Dashboard';
 import ReceivedItems from './pages/department/ReceivedItems';
 import MyInventory from './pages/department/MyInventory';
 
+// Common Pages
+import Profile from './pages/common/Profile';
+
 function App() {
   return (
     <Router>
@@ -53,6 +56,13 @@ function App() {
                 <Route path="/department/dashboard" element={<DeptDashboard />} />
                 <Route path="/department/received" element={<ReceivedItems />} />
                 <Route path="/department/inventory" element={<MyInventory />} />
+              </Route>
+            </Route>
+
+            {/* Shared routes - accessible by any authenticated user */}
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'department']} />}>
+              <Route element={<DashboardLayout />}>
+                <Route path="/profile" element={<Profile />} />
               </Route>
             </Route>
 
